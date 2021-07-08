@@ -2,15 +2,19 @@
 FROM ubuntu:18.04
 
 # Install Fortran & C Compilers and autoconf
-RUN cd $HOME && mkdir install && apt-get update && apt-get -y install build-essential gfortran m4 wget
+RUN apt-get update &&\
+      apt-get -y install build-essential gfortran m4 wget dnsutils openssh-server curl &&\
+      apt-get clean
 
 # Install MPI Libraries and Software
-RUN cd $HOME/install && wget http://www.mpich.org/static/downloads/3.3/mpich-3.3.tar.gz && \
-	tar -zxvf mpich-3.3.tar.gz && cd mpich-3.3 && \
-	./configure -disable-fast CFLAGS=-O2 FFLAGS=-O2 CXXFLAGS=-O2 FCFLAGS=-O2 -prefix=/opt/mpich3 CC=gcc FC=gfortran F77=gfortran && make && make install
+RUN cd /root && curl -L http://www.mpich.org/static/downloads/3.3/mpich-3.3.tar.gz | tar -xzf - &&\
+  cd mpich-3.3 && \
+	./configure -disable-fast CFLAGS=-O2 FFLAGS=-O2 CXXFLAGS=-O2 FCFLAGS=-O2 -prefix=/opt/mpich3 CC=gcc FC=gfortran F77=gfortran && make && make install && \
+  rm -rf /root/*
 
 # Install WGRIB2 package from NCEP
-RUN cd $HOME/install && wget https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz && tar -zxvf wgrib2.tgz && cd grib2 && \
+RUN cd /root && curl https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz | tar -xzf - &&\
+  cd grib2 && \
 	sed -i '118s/USE_NETCDF3=.*/USE_NETCDF3=0/' makefile && \
 	sed -i '119s/USE_NETCDF4=.*/USE_NETCDF4=0/' makefile && \
 	sed -i '120s/USE_REGEX=.*/USE_REGEX=1/' makefile && \
@@ -29,27 +33,40 @@ RUN cd $HOME/install && wget https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgr
 	sed -i '134s/USE_PNG=.*/USE_PNG=0/' makefile && \
 	sed -i '135s/USE_JASPER=.*/USE_JASPER=0/' makefile && \
 	sed -i '136s/USE_AEC=.*/USE_AEC=0/' makefile && \
-	make CC=gcc FC=gfortran && make CC=gcc FC=gfortran lib && cd $HOME/install && mv grib2 /opt
-
-# Install Curl libraries
-RUN cd $HOME/install && wget https://curl.haxx.se/download/curl-7.65.0.tar.gz && tar -xzvf curl-7.65.0.tar.gz && cd curl-7.65.0 && \
-	CC=gcc FC=gfortran ./configure --without-zlib && make && make install
+	make CC=gcc FC=gfortran && make CC=gcc FC=gfortran lib && cd /root && mv grib2 /opt && \
+  rm -rf /root/*
+# rever instalacao acima                            
 
 # Install zlib
-RUN cd $HOME/install && wget https://www.zlib.net/zlib-1.2.11.tar.gz && tar -zxvf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && \
-	FC=gfortran CC=gcc ./configure && make && make install
+RUN cd /root && curl -sL https://www.zlib.net/zlib-1.2.11.tar.gz | tar -xzf - &&\
+  cd zlib-1.2.11 && \
+	FC=gfortran CC=gcc ./configure && make && make install &&\
+  rm -rf /root/*
+
+
+# Install Curl libraries
+#RUN cd /root && curl -sL https://curl.haxx.se/download/curl-7.65.0.tar.gz | tar -xzf - &&\
+#  cd curl-7.65.0 && \
+#	CC=gcc FC=gfortran ./configure --without-zlib && make && make install && \
+#  rm -rf /root/*
+RUN apt-get install -y libcurl4 libcurl4-openssl-dev && apt-get clean
 
 # Install the NetCDF C libraries and packages
-RUN cd $HOME/install && wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.0.tar.gz && export LD_LIBRARY_PATH=/usr/local/lib && \
-	tar -xzvf netcdf-c-4.7.0.tar.gz && cd netcdf-c-4.7.0 && \
-	FC=gfortran CC=gcc ./configure --enable-fortran --disable-netcdf-4 --disable-share LT_SYS_LIBRARY_PATH=/usr/local/lib && make && make check && make install
+#  export LD_LIBRARY_PATH=/usr/local/lib 
+# LT_SYS_LIBRARY_PATH=/usr/local/lib
+RUN cd /root && curl -s https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.0.tar.gz | tar -xzf - &&\
+  cd netcdf-c-4.7.0 && \
+	FC=gfortran CC=gcc ./configure --enable-fortran --disable-netcdf-4 --disable-share  && make && make install &&\
+  rm -rf /root/*
 
 # Install the NetCDF Fortran libraries and packages
-RUN cd $HOME/install && wget https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-fortran-4.4.5.tar.gz && tar -xzvf netcdf-fortran-4.4.5.tar.gz && \
-	cd netcdf-fortran-4.4.5 && export LD_LIBRARY_PATH=/usr/local/lib && FC=gfortran CC=gcc ./configure --enable-fortran --disable-netcdf-4 --disable-shared && make && make check && make install
+RUN cd /root && curl -s https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-fortran-4.4.5.tar.gz | tar -xzf - && \
+	cd netcdf-fortran-4.4.5 && export LD_LIBRARY_PATH=/usr/local/lib && FC=gfortran CC=gcc ./configure --enable-fortran --disable-netcdf-4 --disable-shared &&\
+  make && make install &&\
+  rm -rf /root/*
 
 # Configure ssh (multi-host)
-RUN apt-get -y install dnsutils openssh-server
+#RUN apt-get -y install dnsutils openssh-server
 COPY sshconfig /root/.ssh/config
 RUN mkdir -p /var/run/sshd \
     && ssh-keygen -A \
@@ -68,17 +85,26 @@ ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
 # Copy BRAMS to container (files: tables/, src/, doc/, build/, variables.csv, README, RAMSIN_meteo-only, RAMSIN_meteo-chem, jules.in, HISTORICO, gfdl_cloud_microphysics_nml)
-COPY brams.tgz /root
+#http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS/releases/stable/brams-5.6.1.xz
+#http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS_5.4//BRAMS/brams-5.3-src.tgz
+#COPY brams.tgz /root
 
-# Making BRAMS' Model
-RUN cd $HOME && tar -zxvf brams.tgz && cd BRAMS && sed -i 's/ICFILEPREFIX/ICFILETYPE/' RAMSIN_meteo-* && cd build && \
-	./configure -program-prefix=BRAMS -prefix=$HOME -enable-jules -with-chem=RELACS_TUV -with-aer=SIMPLE -with-fpcomp=/opt/mpich3/bin/mpif90 -with-cpcomp=/opt/mpich3/bin/mpicc -with-fcomp=gfortran -with-ccomp=gcc --with-wgrib2=/opt/grib2/lib --with-netcdf=/usr/local/ && make && make install
+# Making BRAMS Model
+RUN cd /root &&\
+  mkdir BRAMS &&\
+  curl http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS_5.4/BRAMS/brams-5.3-src.tgz | tar -xzf - -C BRAMS &&\
+  cd BRAMS &&\
+  sed -i 's/ICFILEPREFIX/ICFILETYPE/' RAMSIN_meteo-* &&\
+  cd build && \
+	./configure -program-prefix=BRAMS -prefix=$HOME -enable-jules -with-chem=RELACS_TUV -with-aer=SIMPLE -with-fpcomp=/opt/mpich3/bin/mpif90 -with-cpcomp=/opt/mpich3/bin/mpicc -with-fcomp=gfortran -with-ccomp=gcc --with-wgrib2=/opt/grib2/lib --with-netcdf=/usr/local/ &&\
+  make && make install &&\
+  rm -rf /root/BRAMS
 
 # Copy script to container
 COPY run-brams.sh /root/run-brams
 
 # Clean up unnecessary files and give execution permission to script
-RUN cd $HOME && rm -rf install/ BRAMS/ && apt-get autoremove && apt-get clean && chmod +x run-brams
+RUN chmod +x /root/run-brams
 
 #
 WORKDIR /root
