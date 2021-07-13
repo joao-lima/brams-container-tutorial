@@ -74,7 +74,7 @@ cat $HOME/hosts
 
 cd $HOME/bin && rm -rf tmp/ && \
 	mkdir ./tmp && export TMPDIR=./tmp && ulimit -s 65536 && export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH && \
-	/opt/mpich3/bin/mpirun -hostfile $HOME/hosts -np $nprocs ./brams-5.3 -f RAMSIN_${test_case}
+	/opt/mpich3/bin/mpirun -hostfile $HOME/hosts -np $nprocs ./brams-5.6 -f RAMSIN_${test_case}
 
 
 # Check exit status

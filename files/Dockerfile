@@ -1,72 +1,68 @@
 # OS
-FROM ubuntu:18.04
+FROM ubuntu:20.10
 
 # Install Fortran & C Compilers and autoconf
-RUN apt-get update &&\
-      apt-get -y install build-essential gfortran m4 wget dnsutils openssh-server curl &&\
-      apt-get clean
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update &&\
+      apt install -y build-essential gfortran m4 dnsutils openssh-server curl libcurl4 libcurl4-openssl-dev &&\
+      apt clean
 
 # Install MPI Libraries and Software
-RUN cd /root && curl -L http://www.mpich.org/static/downloads/3.3/mpich-3.3.tar.gz | tar -xzf - &&\
-  cd mpich-3.3 && \
-	./configure -disable-fast CFLAGS=-O2 FFLAGS=-O2 CXXFLAGS=-O2 FCFLAGS=-O2 -prefix=/opt/mpich3 CC=gcc FC=gfortran F77=gfortran && make && make install && \
+RUN cd /root && curl -sL https://www.mpich.org//static/downloads/3.3.2/mpich-3.3.2.tar.gz | tar -xzf - &&\
+  cd mpich-3.3.2 && \
+	./configure -disable-fast CFLAGS=-O2 FFLAGS='-w -fallow-argument-mismatch -O2' CXXFLAGS=-O2 FCFLAGS=-O2 -prefix=/opt/mpich3 CC=gcc FC=gfortran F77=gfortran &&\
+  make && make install && \
   rm -rf /root/*
 
 # Install WGRIB2 package from NCEP
 RUN cd /root && curl https://www.ftp.cpc.ncep.noaa.gov/wd51we/wgrib2/wgrib2.tgz | tar -xzf - &&\
   cd grib2 && \
-	sed -i '118s/USE_NETCDF3=.*/USE_NETCDF3=0/' makefile && \
-	sed -i '119s/USE_NETCDF4=.*/USE_NETCDF4=0/' makefile && \
-	sed -i '120s/USE_REGEX=.*/USE_REGEX=1/' makefile && \
-	sed -i '121s/USE_TIGGE=.*/USE_TIGGE=1/' makefile && \
-	sed -i '122s/USE_MYSQL=.*/USE_MYSQL=0/' makefile && \
-	sed -i '123s/USE_IPOLATES=.*/USE_IPOLATES=3/' makefile && \
-	sed -i '124s/USE_SPECTRAL=.*/USE_SPECTRAL=0/' makefile && \
-	sed -i '125s/USE_UDF=.*/USE_UDF=0/' makefile && \
-	sed -i '126s/USE_OPENMP=.*/USE_OPENMP=0/' makefile && \
-	sed -i '127s/USE_PROJ4=.*/USE_PROJ4=0/' makefile && \
-	sed -i '128s/USE_WMO_VALIDATION=.*/USE_WMO_VALIDATION=0/' makefile && \
-	sed -i '129s/DISABLE_TIMEZONE=.*/DISABLE_TIMEZONE=0/' makefile && \
-	sed -i '130s/MAKE_FTN_API=.*/MAKE_FTN_API=1/' makefile && \
-	sed -i '131s/DISABLE_ALARM=.*/DISABLE_ALARM=0/' makefile && \
-	sed -i '133s/USE_G2CLIB=.*/USE_G2CLIB=0/' makefile && \
-	sed -i '134s/USE_PNG=.*/USE_PNG=0/' makefile && \
-	sed -i '135s/USE_JASPER=.*/USE_JASPER=0/' makefile && \
-	sed -i '136s/USE_AEC=.*/USE_AEC=0/' makefile && \
+	sed -i 's/USE_NETCDF3=.*/USE_NETCDF3=0/' makefile && \
+	sed -i 's/USE_NETCDF4=.*/USE_NETCDF4=0/' makefile && \
+	sed -i 's/USE_REGEX=.*/USE_REGEX=1/' makefile && \
+	sed -i 's/USE_TIGGE=.*/USE_TIGGE=1/' makefile && \
+	sed -i 's/USE_MYSQL=.*/USE_MYSQL=0/' makefile && \
+	sed -i 's/USE_IPOLATES=.*/USE_IPOLATES=3/' makefile && \
+	sed -i 's/USE_SPECTRAL=.*/USE_SPECTRAL=0/' makefile && \
+	sed -i 's/USE_UDF=.*/USE_UDF=0/' makefile && \
+	sed -i 's/USE_OPENMP=.*/USE_OPENMP=0/' makefile && \
+	sed -i 's/USE_PROJ4=.*/USE_PROJ4=0/' makefile && \
+	sed -i 's/USE_WMO_VALIDATION=.*/USE_WMO_VALIDATION=0/' makefile && \
+	sed -i 's/DISABLE_TIMEZONE=.*/DISABLE_TIMEZONE=0/' makefile && \
+	sed -i 's/MAKE_FTN_API=.*/MAKE_FTN_API=1/' makefile && \
+	sed -i 's/DISABLE_ALARM=.*/DISABLE_ALARM=0/' makefile && \
+	sed -i 's/USE_G2CLIB=.*/USE_G2CLIB=0/' makefile && \
+	sed -i 's/USE_PNG=.*/USE_PNG=0/' makefile && \
+	sed -i 's/USE_JASPER=.*/USE_JASPER=0/' makefile && \
+	sed -i 's/USE_AEC=.*/USE_AEC=0/' makefile && \
 	make CC=gcc FC=gfortran && make CC=gcc FC=gfortran lib && cd /root && mv grib2 /opt && \
   rm -rf /root/*
-# rever instalacao acima                            
 
-# Install zlib
-RUN cd /root && curl -sL https://www.zlib.net/zlib-1.2.11.tar.gz | tar -xzf - &&\
-  cd zlib-1.2.11 && \
-	FC=gfortran CC=gcc ./configure && make && make install &&\
+# install HDF5              
+RUN cd /root &&\
+  curl -s https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.1/src/hdf5-1.12.1.tar.gz | tar -xzf - &&\
+  cd hdf5-1.12.1 && \
+  FC=gfortran CC=gcc ./configure --prefix=/opt/hdf5 --enable-fortran &&\
+  make && make install &&\
   rm -rf /root/*
 
-
-# Install Curl libraries
-#RUN cd /root && curl -sL https://curl.haxx.se/download/curl-7.65.0.tar.gz | tar -xzf - &&\
-#  cd curl-7.65.0 && \
-#	CC=gcc FC=gfortran ./configure --without-zlib && make && make install && \
-#  rm -rf /root/*
-RUN apt-get install -y libcurl4 libcurl4-openssl-dev && apt-get clean
-
 # Install the NetCDF C libraries and packages
-#  export LD_LIBRARY_PATH=/usr/local/lib 
-# LT_SYS_LIBRARY_PATH=/usr/local/lib
-RUN cd /root && curl -s https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.0.tar.gz | tar -xzf - &&\
-  cd netcdf-c-4.7.0 && \
-	FC=gfortran CC=gcc ./configure --enable-fortran --disable-netcdf-4 --disable-share  && make && make install &&\
+RUN cd /root && curl -s https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-c-4.7.3.tar.gz | tar -xzf - &&\
+  cd netcdf-c-4.7.3 && \
+ ./configure --prefix=/opt/netcdfc --disable-dap --disable-netcdf-4 FC=/opt/mpich3/bin/mpif90 CC=/opt/mpich3/bin/mpicc LT_SYS_LIBRARY_PATH=/opt/hdf5/lib CFLAGS='-I/opt/hdf5/include' LIBS='-L/opt/hdf5/lib' &&\
+	make && make install &&\
   rm -rf /root/*
 
 # Install the NetCDF Fortran libraries and packages
-RUN cd /root && curl -s https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-fortran-4.4.5.tar.gz | tar -xzf - && \
-	cd netcdf-fortran-4.4.5 && export LD_LIBRARY_PATH=/usr/local/lib && FC=gfortran CC=gcc ./configure --enable-fortran --disable-netcdf-4 --disable-shared &&\
+RUN cd /root && curl -s https://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-fortran-4.5.2.tar.gz | tar -xzf - && \
+	cd netcdf-fortran-4.5.2 &&\
+  export LD_LIBRARY_PATH=/opt/netcdfc/lib:/opt/hdf5/lib:/usr/local/lib &&\
+  FC=/opt/mpich3/bin/mpif90 CC=/opt/mpich3/bin/mpicc ./configure --prefix=/opt/netcdff \
+    CPPFLAGS='-I/opt/netcdfc/include' LDFLAGS='-L/opt/netcdfc/lib' &&\
   make && make install &&\
   rm -rf /root/*
 
 # Configure ssh (multi-host)
-#RUN apt-get -y install dnsutils openssh-server
 COPY sshconfig /root/.ssh/config
 RUN mkdir -p /var/run/sshd \
     && ssh-keygen -A \
@@ -84,21 +80,17 @@ RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so
 ENV NOTVISIBLE "in users profile"
 RUN echo "export VISIBLE=now" >> /etc/profile
 
-# Copy BRAMS to container (files: tables/, src/, doc/, build/, variables.csv, README, RAMSIN_meteo-only, RAMSIN_meteo-chem, jules.in, HISTORICO, gfdl_cloud_microphysics_nml)
-#http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS/releases/stable/brams-5.6.1.xz
-#http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS_5.4//BRAMS/brams-5.3-src.tgz
-#COPY brams.tgz /root
-
 # Making BRAMS Model
+# needs gcc-10 because of flag -fallow-argument-mismatch
 RUN cd /root &&\
-  mkdir BRAMS &&\
-  curl http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS_5.4/BRAMS/brams-5.3-src.tgz | tar -xzf - -C BRAMS &&\
-  cd BRAMS &&\
-  sed -i 's/ICFILEPREFIX/ICFILETYPE/' RAMSIN_meteo-* &&\
+  curl http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS/releases/stable/brams-5.6.1.xz | tar -xJf - &&\
+  cd BRAMS-5.6.1 &&\
   cd build && \
-	./configure -program-prefix=BRAMS -prefix=$HOME -enable-jules -with-chem=RELACS_TUV -with-aer=SIMPLE -with-fpcomp=/opt/mpich3/bin/mpif90 -with-cpcomp=/opt/mpich3/bin/mpicc -with-fcomp=gfortran -with-ccomp=gcc --with-wgrib2=/opt/grib2/lib --with-netcdf=/usr/local/ &&\
+  ./configure --program-prefix=BRAMS_5.4 --prefix=/root --enable-jules \
+	   --with-chem=RELACS_TUV --with-aer=SIMPLE --with-fpcomp=/opt/mpich3/bin/mpif90 \
+	   --with-cpcomp=/opt/mpich3/bin/mpicc --with-fcomp=gfortran --with-ccomp=gcc &&\
   make && make install &&\
-  rm -rf /root/BRAMS
+  rm -rf /root/BRAMS-5.6.1
 
 # Copy script to container
 COPY run-brams.sh /root/run-brams
