@@ -82,15 +82,16 @@ RUN echo "export VISIBLE=now" >> /etc/profile
 
 # Making BRAMS Model
 # needs gcc-10 because of flag -fallow-argument-mismatch
+# http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS/releases/stable/brams-5.6.1.xz 
 RUN cd /root &&\
-  curl http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS/releases/stable/brams-5.6.1.xz | tar -xJf - &&\
-  cd BRAMS-5.6.1 &&\
+  curl http://ftp.cptec.inpe.br/pesquisa/bramsrd/BRAMS/releases/stable/brams-5.6.2.tar.xz | tar -xJf - &&\
+  cd BRAMS-5.6 &&\
   cd build && \
-  ./configure --program-prefix=BRAMS_5.4 --prefix=/root --enable-jules \
+  ./configure --program-prefix=BRAMS_5.6 --prefix=/root --enable-jules \
 	   --with-chem=RELACS_TUV --with-aer=SIMPLE --with-fpcomp=/opt/mpich3/bin/mpif90 \
 	   --with-cpcomp=/opt/mpich3/bin/mpicc --with-fcomp=gfortran --with-ccomp=gcc &&\
   make && make install &&\
-  rm -rf /root/BRAMS-5.6.1
+  rm -rf /root/BRAMS-5.6
 
 # Copy script to container
 COPY run-brams.sh /root/run-brams
